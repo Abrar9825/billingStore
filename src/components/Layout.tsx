@@ -70,7 +70,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 pulse-glow" />
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                SmartBill+
+                {import.meta.env.VITE_APP_NAME}
               </span>
             </div>
             <Button
