@@ -680,19 +680,17 @@ export default function Reports() {
                                         <span className="text-gray-600">Subtotal:</span>
                                         <span className="font-medium">₹{bill.subtotal.toLocaleString()}</span>
                                       </div>
-                                      {bill.discount > 0 && (
-                                        <div className="flex justify-between text-xs sm:text-sm text-green-600">
-                                          <span>Discount ({bill.discount}%):</span>
-                                          <span>- ₹{((bill.subtotal * bill.discount) / 100).toFixed(2)}</span>
-                                        </div>
-                                      )}
+                                      <div className="flex justify-between text-xs sm:text-sm text-green-600">
+                                        <span>Discount ({bill.discount || 0}%):</span>
+                                        <span>- ₹{((bill.subtotal * (bill.discount || 0)) / 100).toFixed(2)}</span>
+                                      </div>
                                       <div className="flex justify-between text-xs sm:text-sm">
                                         <span className="text-gray-600">CGST (9%):</span>
-                                        <span className="font-medium">₹{(bill.tax / 2).toFixed(2)}</span>
+                                        <span className="font-medium">₹{(bill.cgst !== undefined ? bill.cgst : (bill.tax / 2)).toFixed(2)}</span>
                                       </div>
                                       <div className="flex justify-between text-xs sm:text-sm">
                                         <span className="text-gray-600">SGST (9%):</span>
-                                        <span className="font-medium">₹{(bill.tax / 2).toFixed(2)}</span>
+                                        <span className="font-medium">₹{(bill.sgst !== undefined ? bill.sgst : (bill.tax / 2)).toFixed(2)}</span>
                                       </div>
                                       <div className="flex justify-between text-xs sm:text-sm">
                                         <span className="text-gray-600">GST Total (18%):</span>
@@ -795,9 +793,17 @@ export default function Reports() {
                                   <span>Subtotal:</span>
                                   <span>₹{bill.subtotal}</span>
                                 </div>
+                                <div className="flex justify-between text-[10px] sm:text-xs text-green-600">
+                                  <span>Discount ({bill.discount || 0}%):</span>
+                                  <span>- ₹{((bill.subtotal * (bill.discount || 0)) / 100).toFixed(2)}</span>
+                                </div>
                                 <div className="flex justify-between text-[10px] sm:text-xs">
-                                  <span>Tax:</span>
-                                  <span>₹{bill.tax}</span>
+                                  <span>CGST (9%):</span>
+                                  <span>₹{(bill.cgst !== undefined ? bill.cgst : (bill.tax / 2)).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-[10px] sm:text-xs">
+                                  <span>SGST (9%):</span>
+                                  <span>₹{(bill.sgst !== undefined ? bill.sgst : (bill.tax / 2)).toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between font-bold text-xs sm:text-sm border-t pt-1">
                                   <span>Total:</span>
