@@ -47,20 +47,20 @@ export default function CategoryManagement() {
               <Plus className="h-4 w-4 mr-2" /> Add Category
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-xs sm:max-w-md w-full">
+          <DialogContent className="max-w-full sm:max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Category</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">Add New Category</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Category Name</label>
-                <Input placeholder="Enter category name" value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} />
+            <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Category Name</label>
+                <Input placeholder="Enter category name" value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} className="text-sm" />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
-                <Input placeholder="Optional description" value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} />
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Description</label>
+                <Input placeholder="Optional description" value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} className="text-sm" />
               </div>
-              <Button onClick={handleAddCategory} className="w-full">Add Category</Button>
+              <Button onClick={handleAddCategory} className="w-full text-sm">Add Category</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -116,20 +116,20 @@ export default function CategoryManagement() {
 
       {/* Edit Category Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-xs sm:max-w-md w-full">
+        <DialogContent className="max-w-full sm:max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Category</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Edit Category</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category Name</label>
-              <Input placeholder="Enter category name" value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} />
+          <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Category Name</label>
+              <Input placeholder="Enter category name" value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} className="text-sm" />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Input placeholder="Optional description" value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} />
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-xs sm:text-sm font-medium">Description</label>
+              <Input placeholder="Optional description" value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} className="text-sm" />
             </div>
-            <Button onClick={handleEditCategory} className="w-full">Update Category</Button>
+            <Button onClick={handleEditCategory} className="w-full text-sm">Update Category</Button>
           </div>
         </DialogContent>
       </Dialog>

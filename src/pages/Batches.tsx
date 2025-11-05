@@ -115,43 +115,43 @@ export default function Batches() {
               <Plus className="h-4 w-4 mr-2" /> Add Batch
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-xs sm:max-w-md w-full">
+          <DialogContent className="max-w-full sm:max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Batch</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">Add New Batch</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Product</label>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Product</label>
                 <Select value={newBatch.productId} onValueChange={(value) => setNewBatch({...newBatch, productId: value})}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm">
                     <SelectValue placeholder="Select product" />
                   </SelectTrigger>
                   <SelectContent>
                     {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+                      <SelectItem key={product.id} value={product.id} className="text-sm">{product.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Purchase Price</label>
-                  <Input type="number" placeholder="₹0" value={newBatch.purchasePrice} onChange={(e) => setNewBatch({...newBatch, purchasePrice: e.target.value})} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-xs sm:text-sm font-medium">Purchase Price</label>
+                  <Input type="number" placeholder="₹0" value={newBatch.purchasePrice} onChange={(e) => setNewBatch({...newBatch, purchasePrice: e.target.value})} className="text-sm" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Sale Price</label>
-                  <Input type="number" placeholder="₹0" value={newBatch.salePrice} onChange={(e) => setNewBatch({...newBatch, salePrice: e.target.value})} />
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-xs sm:text-sm font-medium">Sale Price</label>
+                  <Input type="number" placeholder="₹0" value={newBatch.salePrice} onChange={(e) => setNewBatch({...newBatch, salePrice: e.target.value})} className="text-sm" />
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Quantity</label>
-                <Input type="number" placeholder="0" value={newBatch.quantity} onChange={(e) => setNewBatch({...newBatch, quantity: e.target.value})} />
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Quantity</label>
+                <Input type="number" placeholder="0" value={newBatch.quantity} onChange={(e) => setNewBatch({...newBatch, quantity: e.target.value})} className="text-sm" />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Supplier</label>
-                <Input placeholder="Supplier name" value={newBatch.supplier} onChange={(e) => setNewBatch({...newBatch, supplier: e.target.value})} />
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Supplier</label>
+                <Input placeholder="Supplier name" value={newBatch.supplier} onChange={(e) => setNewBatch({...newBatch, supplier: e.target.value})} className="text-sm" />
               </div>
-              <Button onClick={handleAddBatch} className="w-full">Add Batch</Button>
+              <Button onClick={handleAddBatch} className="w-full text-sm">Add Batch</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -264,44 +264,44 @@ export default function Batches() {
       </Card>
       {/* Edit Batch Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-full sm:max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Batch</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Edit Batch</DialogTitle>
           </DialogHeader>
           {editBatch && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Product</label>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Product</label>
                 <Select value={editBatch.productId} onValueChange={(value) => setEditBatch({ ...editBatch, productId: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm">
                     <SelectValue placeholder="Select product" />
                   </SelectTrigger>
                   <SelectContent>
                     {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+                      <SelectItem key={product.id} value={product.id} className="text-sm">{product.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Purchase Price</label>
-                  <Input type="number" placeholder="₹0" value={editBatch.purchasePrice} onChange={(e) => setEditBatch({ ...editBatch, purchasePrice: e.target.value })} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-xs sm:text-sm font-medium">Purchase Price</label>
+                  <Input type="number" placeholder="₹0" value={editBatch.purchasePrice} onChange={(e) => setEditBatch({ ...editBatch, purchasePrice: e.target.value })} className="text-sm" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Sale Price</label>
-                  <Input type="number" placeholder="₹0" value={editBatch.salePrice} onChange={(e) => setEditBatch({ ...editBatch, salePrice: e.target.value })} />
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-xs sm:text-sm font-medium">Sale Price</label>
+                  <Input type="number" placeholder="₹0" value={editBatch.salePrice} onChange={(e) => setEditBatch({ ...editBatch, salePrice: e.target.value })} className="text-sm" />
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Quantity</label>
-                <Input type="number" placeholder="0" value={editBatch.quantity} onChange={(e) => setEditBatch({ ...editBatch, quantity: e.target.value })} />
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Quantity</label>
+                <Input type="number" placeholder="0" value={editBatch.quantity} onChange={(e) => setEditBatch({ ...editBatch, quantity: e.target.value })} className="text-sm" />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Supplier</label>
-                <Input placeholder="Supplier name" value={editBatch.supplier} onChange={(e) => setEditBatch({ ...editBatch, supplier: e.target.value })} />
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Supplier</label>
+                <Input placeholder="Supplier name" value={editBatch.supplier} onChange={(e) => setEditBatch({ ...editBatch, supplier: e.target.value })} className="text-sm" />
               </div>
-              <Button onClick={handleEditBatch} className="w-full">Save Changes</Button>
+              <Button onClick={handleEditBatch} className="w-full text-sm">Save Changes</Button>
             </div>
           )}
         </DialogContent>
@@ -309,13 +309,13 @@ export default function Batches() {
 
       {/* Delete Batch Modal */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent className="sm:max-w-xs">
+        <DialogContent className="max-w-full sm:max-w-xs w-[90vw] sm:w-full">
           <DialogHeader>
-            <DialogTitle>Delete Batch</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Delete Batch</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <p>Are you sure you want to delete this batch?</p>
-            <Button onClick={handleDeleteBatch} className="w-full" variant="destructive">Delete</Button>
+          <div className="space-y-3 sm:space-y-4">
+            <p className="text-sm">Are you sure you want to delete this batch?</p>
+            <Button onClick={handleDeleteBatch} className="w-full text-sm" variant="destructive">Delete</Button>
           </div>
         </DialogContent>
       </Dialog>

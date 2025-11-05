@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useStore } from '@/lib/store';
 
 export default function Products() {
-  const { products, batches, addProduct, updateProduct, toggleProductStatus } = useStore();
+  const { products, batches, addProduct, updateProduct, toggleProductStatus, categories: storeCategories } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -50,7 +50,7 @@ export default function Products() {
     setIsAddModalOpen(false);
   };
 
-  const categories = ['Clothing', 'Ethnic', 'Traditional', 'Accessories', 'Footwear'];
+  const categories = storeCategories.map(cat => cat.name);
 
 
     const handleEditProduct = () => {
@@ -75,38 +75,40 @@ export default function Products() {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="max-w-full sm:max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">Add New Product</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Product Name</label>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Product Name</label>
                 <Input
                   placeholder="Enter product name"
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                  className="text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">SKU</label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">SKU</label>
                 <Input
                   placeholder="Enter SKU (e.g., ABC001)"
                   value={newProduct.sku}
                   onChange={(e) => setNewProduct({...newProduct, sku: e.target.value.toUpperCase()})}
+                  className="text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Category</label>
                 <Select value={newProduct.category} onValueChange={(value) => setNewProduct({...newProduct, category: value})}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
+                      <SelectItem key={category} value={category} className="text-sm">
                         {category}
                       </SelectItem>
                     ))}
@@ -114,7 +116,7 @@ export default function Products() {
                 </Select>
               </div>
 
-              <Button onClick={handleAddProduct} className="w-full">
+              <Button onClick={handleAddProduct} className="w-full text-sm">
                 Add Product
               </Button>
             </div>
@@ -200,44 +202,46 @@ export default function Products() {
 
       {/* Edit Product Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-full sm:max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Product</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">Edit Product</DialogTitle>
           </DialogHeader>
           {editProduct && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Product Name</label>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Product Name</label>
                 <Input
                   placeholder="Enter product name"
                   value={editProduct.name}
                   onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })}
+                  className="text-sm"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">SKU</label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">SKU</label>
                 <Input
                   placeholder="Enter SKU (e.g., ABC001)"
                   value={editProduct.sku}
                   onChange={(e) => setEditProduct({ ...editProduct, sku: e.target.value.toUpperCase() })}
+                  className="text-sm"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <label className="text-xs sm:text-sm font-medium">Category</label>
                 <Select value={editProduct.category} onValueChange={(value) => setEditProduct({ ...editProduct, category: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
+                      <SelectItem key={category} value={category} className="text-sm">
                         {category}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleEditProduct} className="w-full">
+              <Button onClick={handleEditProduct} className="w-full text-sm">
                 Save Changes
               </Button>
             </div>

@@ -10,34 +10,92 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { useStore } from '@/lib/store';
 
-const salesData = [
-  { month: 'Jan', sales: 45000, profit: 15000, expenses: 12000 },
-  { month: 'Feb', sales: 52000, profit: 18000, expenses: 14000 },
-  { month: 'Mar', sales: 48000, profit: 16000, expenses: 13000 },
-  { month: 'Apr', sales: 61000, profit: 22000, expenses: 15000 },
-  { month: 'May', sales: 55000, profit: 19000, expenses: 14500 },
-  { month: 'Jun', sales: 67000, profit: 25000, expenses: 16000 },
-];
-
-const categoryData = [
-  { name: 'Clothing', value: 35, color: '#3b82f6' },
-  { name: 'Ethnic', value: 28, color: '#10b981' },
-  { name: 'Traditional', value: 22, color: '#f59e0b' },
-  { name: 'Accessories', value: 15, color: '#ef4444' },
-];
-
-const topProducts = [
-  { name: 'Denim Co-Ord', sales: 125, revenue: 150000 },
-  { name: 'Cotton Kurta', sales: 98, revenue: 58800 },
-  { name: 'Silk Saree', sales: 45, revenue: 157500 },
-  { name: 'Designer Lehenga', sales: 32, revenue: 96000 },
-];
-
 export default function Reports() {
-  const { batches, bills, products } = useStore();
+  const { batches, bills, products, categories } = useStore();
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [activeTab, setActiveTab] = useState('sales');
+
+  // Calculate daily sales data from actual bills
+  const getDailySalesData = () => {
+    const dailyData: Record<string, { sales: number; profit: number }> = {};
+    
+    bills.forEach(bill => {
+      const date = new Date(bill.date);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      
+      if (!dailyData[dayName]) {
+        dailyData[dayName] = { sales: 0, profit: 0 };
+      }
+      
+      dailyData[dayName].sales += bill.grandTotal;
+      
+      // Calculate profit
+      bill.items.forEach(item => {
+        const batch = batches.find(b => b.id === item.batchId);
+        if (batch) {
+          dailyData[dayName].profit += (item.rate - batch.purchasePrice) * item.quantity;
+        }
+      });
+    });
+
+    const daysOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return daysOrder.map(day => ({
+      name: day,
+      sales: Math.round(dailyData[day]?.sales || 0),
+      profit: Math.round(dailyData[day]?.profit || 0)
+    }));
+  };
+
+  // Calculate category-wise sales from actual bills
+  const getCategoryData = () => {
+    const categoryStats: Record<string, number> = {};
+    let totalRevenue = 0;
+
+    bills.forEach(bill => {
+      bill.items.forEach(item => {
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+          if (!categoryStats[product.category]) {
+            categoryStats[product.category] = 0;
+          }
+          categoryStats[product.category] += item.amount;
+          totalRevenue += item.amount;
+        }
+      });
+    });
+
+    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    return Object.entries(categoryStats).map(([name, value], index) => ({
+      name,
+      value: Math.round((value / totalRevenue) * 100),
+      color: colors[index % colors.length]
+    }));
+  };
+
+  // Get top performing products from actual bills
+  const getTopProducts = () => {
+    const productStats: Record<string, { sales: number; revenue: number }> = {};
+
+    bills.forEach(bill => {
+      bill.items.forEach(item => {
+        if (!productStats[item.productName]) {
+          productStats[item.productName] = { sales: 0, revenue: 0 };
+        }
+        productStats[item.productName].sales += item.quantity;
+        productStats[item.productName].revenue += item.amount;
+      });
+    });
+
+    return Object.entries(productStats)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+  };
+
+  const salesData = getDailySalesData();
+  const categoryData = getCategoryData();
+  const topProducts = getTopProducts();
 
   // Calculate product-wise profit for pie chart
   const getProductProfitData = () => {
@@ -82,6 +140,8 @@ export default function Reports() {
     }, 0);
   }, 0);
 
+  const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
   const productProfitData = getProductProfitData();
 
   // Export functions
@@ -109,22 +169,21 @@ export default function Reports() {
     switch (activeTab) {
       case 'sales':
         const salesExportData = salesData.map(item => ({
-          month: item.month,
+          day: item.name,
           sales: item.sales,
-          profit: item.profit,
-          expenses: item.expenses
+          profit: item.profit
         }));
-        exportToCSV(salesExportData, 'Sales_Report', ['Month', 'Sales', 'Profit', 'Expenses']);
+        exportToCSV(salesExportData, 'Sales_Report', ['Day', 'Sales', 'Profit']);
         break;
 
       case 'profit':
         const profitExportData = salesData.map(item => ({
-          month: item.month,
+          day: item.name,
           revenue: item.sales,
           profit: item.profit,
-          profit_margin: ((item.profit / item.sales) * 100).toFixed(2) + '%'
+          profit_margin: item.sales > 0 ? ((item.profit / item.sales) * 100).toFixed(2) + '%' : '0%'
         }));
-        exportToCSV(profitExportData, 'Profit_Report', ['Month', 'Revenue', 'Profit', 'Profit_Margin']);
+        exportToCSV(profitExportData, 'Profit_Report', ['Day', 'Revenue', 'Profit', 'Profit_Margin']);
         break;
 
       case 'products':
@@ -305,7 +364,7 @@ export default function Reports() {
               <ResponsiveContainer width="100%" height={250} className="md:h-[400px]">
                 <BarChart data={salesData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
+                  <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
                   <YAxis stroke="#64748b" fontSize={12} />
                   <Tooltip 
                     contentStyle={{
@@ -325,6 +384,51 @@ export default function Reports() {
 
         {/* Profit Tab */}
         <TabsContent value="profit" className="space-y-4 md:space-y-6">
+          {/* Profit Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
+            <Card className="glass border-white/20 hover-lift">
+              <CardContent className="p-3 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm font-medium text-gray-600">Total Profit</p>
+                    <p className="text-lg md:text-2xl font-bold text-green-600">₹{totalProfit.toLocaleString()}</p>
+                  </div>
+                  <div className="p-2 md:p-3 rounded-xl bg-gradient-to-r from-green-500 to-green-600">
+                    <TrendingUp className="h-4 w-4 md:h-6 md:w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass border-white/20 hover-lift">
+              <CardContent className="p-3 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm font-medium text-gray-600">Profit Margin</p>
+                    <p className="text-lg md:text-2xl font-bold text-blue-600">{profitMargin.toFixed(1)}%</p>
+                  </div>
+                  <div className="p-2 md:p-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600">
+                    <BarChart3 className="h-4 w-4 md:h-6 md:w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass border-white/20 hover-lift">
+              <CardContent className="p-3 md:p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs md:text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-lg md:text-2xl font-bold text-purple-600">₹{totalRevenue.toLocaleString()}</p>
+                  </div>
+                  <div className="p-2 md:p-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600">
+                    <FileText className="h-4 w-4 md:h-6 md:w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <Card className="glass border-white/20 hover-lift">
               <CardHeader className="p-3 md:p-6">
@@ -334,7 +438,7 @@ export default function Reports() {
                 <ResponsiveContainer width="100%" height={250} className="md:h-[300px]">
                   <LineChart data={salesData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
+                    <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
                     <YAxis stroke="#64748b" fontSize={12} />
                     <Tooltip 
                       contentStyle={{
@@ -367,7 +471,6 @@ export default function Reports() {
                       fill="#8884d8"
                       dataKey="value"
                       label={({ name, value }) => `${name}: ${value}%`}
-                      labelStyle={{ fontSize: '10px' }}
                     >
                       {categoryData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -383,11 +486,10 @@ export default function Reports() {
 
         {/* Products Tab */}
         <TabsContent value="products" className="space-y-4 md:space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            <Card className="glass border-white/20 hover-lift">
-              <CardHeader className="p-3 md:p-6">
-                <CardTitle className="text-sm md:text-base">Top Performing Products</CardTitle>
-              </CardHeader>
+          <Card className="glass border-white/20 hover-lift">
+            <CardHeader className="p-3 md:p-6">
+              <CardTitle className="text-sm md:text-base">Top Performing Products</CardTitle>
+            </CardHeader>
               <CardContent className="p-3 md:p-6 pt-0">
                 <div className="space-y-3 md:space-y-4">
                   {topProducts.map((product, index) => (
@@ -410,53 +512,6 @@ export default function Reports() {
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="glass border-white/20 hover-lift">
-              <CardHeader className="p-3 md:p-6">
-                <CardTitle className="text-sm md:text-base">Product-wise Profit Distribution</CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 md:p-6 pt-0">
-                {productProfitData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250} className="md:h-[300px]">
-                    <PieChart>
-                      <Pie
-                        data={productProfitData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, value }) => value > 0 ? `${name}: ₹${value.toLocaleString()}` : ''}
-                        labelStyle={{ fontSize: '10px' }}
-                      >
-                        {productProfitData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value) => [`₹${value.toLocaleString()}`, 'Profit']}
-                        contentStyle={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                          backdropFilter: 'blur(10px)',
-                          border: '1px solid rgba(255, 255, 255, 0.2)',
-                          borderRadius: '8px',
-                          fontSize: '12px'
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-64 text-gray-500">
-                    <div className="text-center">
-                      <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-sm">No profit data available</p>
-                      <p className="text-xs mt-1">Create some bills to see profit distribution</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
 
         {/* Batches Tab */}
@@ -574,62 +629,93 @@ export default function Reports() {
                                     <Eye className="h-3 w-3" />
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-2xl">
+                                <DialogContent className="max-w-full sm:max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
                                   <span className="sr-only">
                                     <DialogDescription>Bill details dialog</DialogDescription>
                                   </span>
                                   <DialogHeader>
-                                    <DialogTitle className="text-base">Bill Details - {bill.billNumber}</DialogTitle>
+                                    <DialogTitle className="text-sm sm:text-base">Bill Details - {bill.billNumber}</DialogTitle>
                                   </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-3 sm:space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                       <div>
-                                        <p className="text-sm text-gray-600">Customer</p>
-                                        <p className="font-medium">{bill.customerName || 'Walk-in Customer'}</p>
-                                        {bill.customerPhone && <p className="text-sm">{bill.customerPhone}</p>}
+                                        <p className="text-xs sm:text-sm text-gray-600">Customer</p>
+                                        <p className="font-medium text-sm sm:text-base">{bill.customerName || 'Walk-in Customer'}</p>
+                                        {bill.customerPhone && <p className="text-xs sm:text-sm">{bill.customerPhone}</p>}
                                       </div>
                                       <div>
-                                        <p className="text-sm text-gray-600">Date</p>
-                                        <p className="font-medium">{new Date(bill.date).toLocaleDateString()}</p>
+                                        <p className="text-xs sm:text-sm text-gray-600">Date</p>
+                                        <p className="font-medium text-sm sm:text-base">{new Date(bill.date).toLocaleDateString()}</p>
                                       </div>
                                     </div>
 
                                     <div>
-                                      <p className="text-sm text-gray-600 mb-2">Items</p>
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow>
-                                            <TableHead className="text-xs">Product</TableHead>
-                                            <TableHead className="text-xs">Qty</TableHead>
-                                            <TableHead className="text-xs">Rate</TableHead>
-                                            <TableHead className="text-xs">Amount</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {bill.items.map((item) => (
-                                            <TableRow key={item.id}>
-                                              <TableCell className="text-sm">{item.productName}</TableCell>
-                                              <TableCell className="text-sm">{item.quantity}</TableCell>
-                                              <TableCell className="text-sm">₹{item.rate}</TableCell>
-                                              <TableCell className="text-sm">₹{item.amount}</TableCell>
+                                      <p className="text-xs sm:text-sm text-gray-600 mb-2">Items</p>
+                                      <div className="overflow-x-auto">
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead className="text-[10px] sm:text-xs px-2 sm:px-4">Product</TableHead>
+                                              <TableHead className="text-[10px] sm:text-xs px-2 sm:px-4">Qty</TableHead>
+                                              <TableHead className="text-[10px] sm:text-xs px-2 sm:px-4">Rate</TableHead>
+                                              <TableHead className="text-[10px] sm:text-xs px-2 sm:px-4">Amount</TableHead>
                                             </TableRow>
-                                          ))}
-                                        </TableBody>
-                                      </Table>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {bill.items.map((item) => (
+                                              <TableRow key={item.id}>
+                                                <TableCell className="text-[10px] sm:text-sm px-2 sm:px-4">{item.productName}</TableCell>
+                                                <TableCell className="text-[10px] sm:text-sm px-2 sm:px-4">{item.quantity}</TableCell>
+                                                <TableCell className="text-[10px] sm:text-sm px-2 sm:px-4">₹{item.rate}</TableCell>
+                                                <TableCell className="text-[10px] sm:text-sm px-2 sm:px-4">₹{item.amount}</TableCell>
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </Table>
+                                      </div>
                                     </div>
 
-                                    <div className="border-t pt-4">
-                                      <div className="flex justify-between text-sm">
-                                        <span>Subtotal:</span>
-                                        <span>₹{bill.subtotal}</span>
+                                    <div className="border-t pt-3 sm:pt-4 space-y-1.5 sm:space-y-2">
+                                      <div className="flex justify-between text-xs sm:text-sm">
+                                        <span className="text-gray-600">Subtotal:</span>
+                                        <span className="font-medium">₹{bill.subtotal.toLocaleString()}</span>
                                       </div>
-                                      <div className="flex justify-between text-sm">
-                                        <span>Tax:</span>
-                                        <span>₹{bill.tax}</span>
+                                      {bill.discount > 0 && (
+                                        <div className="flex justify-between text-xs sm:text-sm text-green-600">
+                                          <span>Discount ({bill.discount}%):</span>
+                                          <span>- ₹{((bill.subtotal * bill.discount) / 100).toFixed(2)}</span>
+                                        </div>
+                                      )}
+                                      <div className="flex justify-between text-xs sm:text-sm">
+                                        <span className="text-gray-600">CGST (9%):</span>
+                                        <span className="font-medium">₹{(bill.tax / 2).toFixed(2)}</span>
                                       </div>
-                                      <div className="flex justify-between font-bold">
-                                        <span>Total:</span>
-                                        <span>₹{bill.grandTotal}</span>
+                                      <div className="flex justify-between text-xs sm:text-sm">
+                                        <span className="text-gray-600">SGST (9%):</span>
+                                        <span className="font-medium">₹{(bill.tax / 2).toFixed(2)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs sm:text-sm">
+                                        <span className="text-gray-600">GST Total (18%):</span>
+                                        <span className="font-medium">₹{bill.tax.toFixed(2)}</span>
+                                      </div>
+                                      {bill.roundOff !== 0 && (
+                                        <div className="flex justify-between text-xs sm:text-sm">
+                                          <span className="text-gray-600">Round Off:</span>
+                                          <span className="font-medium">₹{bill.roundOff.toFixed(2)}</span>
+                                        </div>
+                                      )}
+                                      <div className="flex justify-between font-bold text-base sm:text-lg border-t pt-2">
+                                        <span>Grand Total:</span>
+                                        <span className="text-green-600">₹{bill.grandTotal.toLocaleString()}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs sm:text-sm pt-2 border-t">
+                                        <span className="text-gray-600">Total Profit:</span>
+                                        <span className="font-bold text-green-600">
+                                          ₹{bill.items.reduce((sum, item) => {
+                                            const batch = batches.find(b => b.id === item.batchId);
+                                            return sum + (batch ? (item.rate - batch.purchasePrice) * item.quantity : 0);
+                                          }, 0).toLocaleString()}
+                                        </span>
                                       </div>
                                     </div>
                                   </div>
@@ -676,42 +762,44 @@ export default function Reports() {
                               <Eye className="h-3 w-3" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-sm">
+                          <DialogContent className="max-w-full sm:max-w-sm w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
                             <span className="sr-only">
                               <DialogDescription>Bill details dialog</DialogDescription>
                             </span>
                             <DialogHeader>
-                              <DialogTitle className="text-base">Bill Details - {bill.billNumber}</DialogTitle>
+                              <DialogTitle className="text-sm sm:text-base">Bill Details - {bill.billNumber}</DialogTitle>
                             </DialogHeader>
-                            <div className="space-y-3">
+                            <div className="space-y-2 sm:space-y-3">
                               <div>
-                                <p className="text-xs text-gray-600">Customer</p>
-                                <p className="font-medium text-sm">{bill.customerName || 'Walk-in Customer'}</p>
-                                {bill.customerPhone && <p className="text-xs">{bill.customerPhone}</p>}
+                                <p className="text-[10px] sm:text-xs text-gray-600">Customer</p>
+                                <p className="font-medium text-xs sm:text-sm">{bill.customerName || 'Walk-in Customer'}</p>
+                                {bill.customerPhone && <p className="text-[10px] sm:text-xs">{bill.customerPhone}</p>}
                               </div>
                               <div>
-                                <p className="text-xs text-gray-600">Date</p>
-                                <p className="font-medium text-sm">{new Date(bill.date).toLocaleDateString()}</p>
+                                <p className="text-[10px] sm:text-xs text-gray-600">Date</p>
+                                <p className="font-medium text-xs sm:text-sm">{new Date(bill.date).toLocaleDateString()}</p>
                               </div>
                               <div>
-                                <p className="text-xs text-gray-600 mb-1">Items</p>
-                                {bill.items.map((item) => (
-                                  <div key={item.id} className="flex justify-between text-xs py-1">
-                                    <span>{item.productName} x{item.quantity}</span>
-                                    <span>₹{item.amount}</span>
-                                  </div>
-                                ))}
+                                <p className="text-[10px] sm:text-xs text-gray-600 mb-1">Items</p>
+                                <div className="max-h-40 overflow-y-auto">
+                                  {bill.items.map((item) => (
+                                    <div key={item.id} className="flex justify-between text-[10px] sm:text-xs py-1 border-b last:border-0">
+                                      <span className="flex-1 pr-2">{item.productName} x{item.quantity}</span>
+                                      <span className="font-medium whitespace-nowrap">₹{item.amount}</span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                               <div className="border-t pt-2 space-y-1">
-                                <div className="flex justify-between text-xs">
+                                <div className="flex justify-between text-[10px] sm:text-xs">
                                   <span>Subtotal:</span>
                                   <span>₹{bill.subtotal}</span>
                                 </div>
-                                <div className="flex justify-between text-xs">
+                                <div className="flex justify-between text-[10px] sm:text-xs">
                                   <span>Tax:</span>
                                   <span>₹{bill.tax}</span>
                                 </div>
-                                <div className="flex justify-between font-bold text-sm">
+                                <div className="flex justify-between font-bold text-xs sm:text-sm border-t pt-1">
                                   <span>Total:</span>
                                   <span>₹{bill.grandTotal}</span>
                                 </div>

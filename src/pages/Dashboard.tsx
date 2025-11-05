@@ -1,4 +1,4 @@
-import { FileText, DollarSign, Package, TrendingUp, AlertTriangle } from 'lucide-react';
+import { FileText, DollarSign, Package, TrendingUp, Bell } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,17 +18,36 @@ const salesData = [
 ];
 
 export default function Dashboard() {
-  const { dashboardStats, batches } = useStore();
+  const { dashboardStats, batches, bills } = useStore();
   // Find low stock batches
   const lowStockBatches = batches.filter(batch => batch.remaining <= 10);
   const [showAlert, setShowAlert] = useState(false);
+
+  // Calculate today's stats from actual bills
+  const today = new Date().toLocaleDateString('en-IN');
+  const todayBills = bills.filter(bill => new Date(bill.date).toLocaleDateString('en-IN') === today);
+  const todaySales = todayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
+  
+  // Calculate total profit from all bills
+  const totalProfit = bills.reduce((sum, bill) => {
+    return sum + bill.items.reduce((itemSum, item) => {
+      const batch = batches.find(b => b.id === item.batchId);
+      return itemSum + (batch ? (item.rate - batch.purchasePrice) * item.quantity : 0);
+    }, 0);
+  }, 0);
+  
+  const totalRevenue = bills.reduce((sum, bill) => sum + bill.grandTotal, 0);
+  const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+  
+  // Active batches (with remaining stock)
+  const activeBatchesCount = batches.filter(batch => batch.remaining > 0).length;
 
   return (
     <div className="space-y-6 fade-in relative">
       {/* Top right notification icon */}
       <div className="absolute right-4 top-4 z-20">
         <Button variant="ghost" size="sm" className="relative" onClick={() => setShowAlert((v) => !v)}>
-          <AlertTriangle className="h-5 w-5 text-orange-600" />
+          <Bell className="h-5 w-5 text-blue-600" />
           {lowStockBatches.length > 0 && (
             <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500">
               {lowStockBatches.length}
@@ -37,9 +56,9 @@ export default function Dashboard() {
         </Button>
         {/* Show Low Stock Alert dropdown if any and toggled */}
         {showAlert && lowStockBatches.length > 0 && (
-          <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg shadow px-3 py-2 min-w-[180px] mt-2 absolute right-0">
-            <div className="flex items-center gap-2 text-orange-700 font-semibold mb-1">
-              <AlertTriangle className="h-4 w-4" />
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow px-3 py-2 min-w-[220px] mt-2 absolute right-0">
+            <div className="flex items-center gap-2 text-blue-700 font-semibold mb-2">
+              <Bell className="h-4 w-4" />
               <span>Low Stock Alert</span>
             </div>
             <ul className="space-y-1">
@@ -65,25 +84,25 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Bills Today"
-          value={dashboardStats.billsToday}
+          value={todayBills.length}
           icon={FileText}
           color="blue"
         />
         <StatCard
           title="Total Sales"
-          value={`₹${dashboardStats.totalSales.toLocaleString()}`}
+          value={`₹${totalRevenue.toLocaleString()}`}
           icon={DollarSign}
           color="green"
         />
         <StatCard
           title="Active Batches"
-          value={dashboardStats.activeBatches}
+          value={activeBatchesCount}
           icon={Package}
           color="purple"
         />
         <StatCard
           title="Profit Margin"
-          value={`${dashboardStats.profitMargin}%`}
+          value={`${profitMargin.toFixed(1)}%`}
           icon={TrendingUp}
           color="orange"
         />

@@ -113,12 +113,12 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-16 items-center px-4 sm:px-6 glass border-b border-white/20">
+        <header className={`flex h-16 items-center px-4 sm:px-6 glass border-b border-white/20 ${sidebarOpen ? 'pointer-events-none' : ''}`}>
           <div className="flex items-center space-x-4 flex-1">
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden"
+              className={`lg:hidden ${sidebarOpen ? 'invisible' : 'visible'}`}
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-5 w-5" />

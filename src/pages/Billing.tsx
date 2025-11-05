@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Minus, Trash2, Receipt, FileText, Search, MessageCircle } from 'lucide-react';
+import { Plus, Minus, Trash2, Receipt, FileText, MessageCircle } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { BillPreview } from '@/components/BillPreview';
 import html2canvas from 'html2canvas';
@@ -18,11 +18,11 @@ const GITHUB_BRANCH = 'main'; // Or 'master' if your repo uses that
 const GITHUB_PDF_FOLDER: string = 'bills'; // Folder name in repo for PDFs
 
 const Billing = () => {
-  const { products, batches, currentBill, addProductToBill, removeFromBill, clearBill, saveBill, updateBatch } = useStore();
+  const { products, batches, currentBill, addProductToBill, removeFromBill, clearBill, saveBill, updateBatch, categories } = useStore();
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedBatch, setSelectedBatch] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'credit'>('cash');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -33,11 +33,12 @@ const Billing = () => {
   const [uploading, setUploading] = useState(false);
   const uploadingRef = React.useRef(false);
 
-  // Filter products and batches based on search
+  // Filter products by category only
   const filteredProducts = React.useMemo(() => 
-    products.filter(product =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase())
-    ), [products, searchTerm]
+    products.filter(product => {
+      const matchesCategory = !selectedCategory || product.category === selectedCategory;
+      return matchesCategory;
+    }), [products, selectedCategory]
   );
 
   const availableBatches = React.useMemo(() => 
@@ -92,9 +93,12 @@ const total = discountedSubtotal + tax;
 
 
   const getCurrentBillData = () => {
+    const today = new Date();
+    const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+    
     return {
       billNumber: `BILL-${Date.now()}`,
-      date: new Date().toLocaleDateString('en-IN'),
+      date: formattedDate,
       customerName: customerName || 'Walk-in Customer',
       customerPhone: customerPhone || 'N/A',
       items: currentBill.map(item => ({
@@ -185,15 +189,15 @@ const total = discountedSubtotal + tax;
     setTimeout(async () => {
       try {
         // Wait longer for modal to fully render
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         // Check multiple times if element exists
         let element = null;
         let attempts = 0;
-        while (!element && attempts < 10) {
+        while (!element && attempts < 15) {
           element = document.getElementById('bill-content');
           if (!element) {
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 300));
             attempts++;
           }
         }
@@ -203,32 +207,82 @@ const total = discountedSubtotal + tax;
           throw new Error('Bill content not found - modal may not be rendered yet');
         }
         
+        // Extra wait to ensure all content is fully rendered
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Get parent container and save original styles
+        const container = element.parentElement;
+        let originalOverflow = '';
+        let originalMaxHeight = '';
+        let originalWidth = '';
+        let originalMaxWidth = '';
+        
+        if (container) {
+          // Temporarily remove size restrictions for full capture
+          originalOverflow = container.style.overflow;
+          originalMaxHeight = container.style.maxHeight;
+          originalWidth = container.style.width;
+          originalMaxWidth = container.style.maxWidth;
+          container.style.overflow = 'visible';
+          container.style.maxHeight = 'none';
+          container.style.width = '800px'; // Set larger width for better quality
+          container.style.maxWidth = '800px';
+          
+          // Wait for reflow
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        
+        // Get actual full height of content
+        const fullHeight = element.scrollHeight;
+        const fullWidth = element.scrollWidth;
+        
         const canvas = await html2canvas(element, { 
-          scale: 2, 
+          scale: 2.5,
           useCORS: true, 
           logging: false,
-          windowWidth: element.scrollWidth,
-          windowHeight: element.scrollHeight
+          backgroundColor: null,
+          width: fullWidth,
+          height: fullHeight,
+          windowWidth: fullWidth,
+          windowHeight: fullHeight,
+          scrollY: -window.scrollY,
+          scrollX: -window.scrollX,
+          allowTaint: true,
+          onclone: (clonedDoc) => {
+            const clonedElement = clonedDoc.getElementById('bill-content');
+            if (clonedElement) {
+              clonedElement.style.overflow = 'visible';
+              clonedElement.style.height = 'auto';
+              clonedElement.style.maxHeight = 'none';
+              clonedElement.style.display = 'block';
+            }
+          }
         });
         
-        const imgData = canvas.toDataURL('image/png');
+        // Restore container styles
+        if (container) {
+          container.style.overflow = originalOverflow;
+          container.style.maxHeight = originalMaxHeight;
+          container.style.width = originalWidth;
+          container.style.maxWidth = originalMaxWidth;
+        }
         
-        // Create PDF with custom size matching the bill content (1 page only)
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
+        const imgData = canvas.toDataURL('image/png', 1.0);
         
-        // Create PDF with custom dimensions (in pixels converted to mm)
-        const pdfWidth = (imgWidth * 25.4) / 96; // Convert pixels to mm (assuming 96 DPI)
-        const pdfHeight = (imgHeight * 25.4) / 96;
+        // Convert canvas dimensions to mm
+        const canvasWidthMM = canvas.width * 0.264583;
+        const canvasHeightMM = canvas.height * 0.264583;
         
+        // Create PDF with custom size matching content exactly (no margins)
         const pdf = new jsPDF({
-          orientation: pdfWidth > pdfHeight ? 'l' : 'p',
+          orientation: canvasWidthMM > canvasHeightMM ? 'landscape' : 'portrait',
           unit: 'mm',
-          format: [pdfWidth, pdfHeight]
+          format: [canvasWidthMM, canvasHeightMM],
+          compress: true
         });
         
-        // Add the full image to fit exactly on one page
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        // Add image with no margins - perfect fit
+        pdf.addImage(imgData, 'PNG', 0, 0, canvasWidthMM, canvasHeightMM, undefined, 'FAST');
         
         const pdfBlob = pdf.output('blob');
         const filename = `Bill_${billData.billNumber}.pdf`;
@@ -242,7 +296,7 @@ const total = discountedSubtotal + tax;
         setUploading(false);
         uploadingRef.current = false;
       }
-    }, 2000); // Increased timeout to ensure modal is fully rendered
+    }, 3000); // Increased timeout to ensure modal is fully rendered
   };
 
   return (
@@ -257,16 +311,25 @@ const total = discountedSubtotal + tax;
               <CardTitle className="text-base">Add Product</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="relative mb-2">
-                <Label htmlFor="product-search" className="text-xs text-gray-700 mb-1 block">Search Products</Label>
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  id="product-search"
-                  placeholder="Type to search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 py-1.5 text-sm"
-                />
+              <div className="space-y-1">
+                <Label htmlFor="category-select" className="text-xs text-gray-700">Filter by Category</Label>
+                <Select value={selectedCategory || "all"} onValueChange={(value) => {
+                  setSelectedCategory(value === "all" ? '' : value);
+                  setSelectedProduct('');
+                  setSelectedBatch('');
+                }}>
+                  <SelectTrigger id="category-select">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="product-select" className="text-xs text-gray-700">Select Product</Label>
@@ -279,7 +342,7 @@ const total = discountedSubtotal + tax;
                       .filter(product => product.status !== 'inactive')
                       .map((product) => (
                         <SelectItem key={product.id} value={product.id}>
-                          {product.name}
+                          {product.name} ({product.category})
                         </SelectItem>
                     ))}
                   </SelectContent>

@@ -90,6 +90,13 @@ export const useStore = create<AppState>((set, get) => ({
     const subtotal = currentBill.reduce((sum, item) => sum + item.amount, 0);
     const tax = subtotal * 0.18; // 18% GST
     const grandTotal = subtotal + tax;
+    
+    // Generate sequential bill number
+    const bills = get().bills;
+    const lastBillNumber = bills.length > 0 
+      ? parseInt(bills[bills.length - 1].billNumber.replace('BILL-', '')) || 0
+      : 0;
+    const newBillNumber = `BILL-${String(lastBillNumber + 1).padStart(4, '0')}`;
 
     const newBill: Bill = {
       id: Date.now().toString(),
@@ -102,7 +109,7 @@ export const useStore = create<AppState>((set, get) => ({
       paymentMethod,
       customerId,
       date: new Date().toISOString(),
-      billNumber: ''
+      billNumber: newBillNumber
     };
 
     set(state => ({
